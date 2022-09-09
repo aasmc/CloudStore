@@ -1,10 +1,14 @@
 package ru.aasmc.cloudstore.data.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.lang.Nullable;
+import ru.aasmc.cloudstore.data.validation.ParentFolderConstraint;
 import ru.aasmc.cloudstore.util.DateProcessor;
 
 import javax.persistence.*;
@@ -15,6 +19,9 @@ import java.util.List;
 import java.util.Objects;
 
 @Entity(name = "system_item")
+@Getter
+@Setter
+@ToString
 public class SystemItem {
     @Id
     @Column(updatable = false, nullable = false)
@@ -33,6 +40,7 @@ public class SystemItem {
     @DateTimeFormat(pattern = DateProcessor.DATE_FORMAT)
     private ZonedDateTime modifiedAt;
 
+    @ParentFolderConstraint
     @ManyToOne(optional = true)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "parent_item", nullable = true)
@@ -47,6 +55,7 @@ public class SystemItem {
     @Column(name = "size", nullable = true)
     private int size;
 
+    @ToString.Exclude
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "parentItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SystemItem> children = new ArrayList<>();
 
@@ -65,4 +74,5 @@ public class SystemItem {
     public int hashCode() {
         return Objects.hash(id);
     }
+
 }
