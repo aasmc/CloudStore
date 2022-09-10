@@ -23,6 +23,21 @@ spring:
   h2:
     console:
       enabled: true
+  cache:
+    jcache:
+      config: classpath:echache.xml
+bucket4j:
+  enabled: true
+  filters:
+    - cache-name: buckets
+      url: /imports
+      rate-limits:
+        - bandwidths:
+            - capacity: 1000
+              time: 1
+              unit: minutes
+    - http-response-body:
+        message=Too many requests
 management:
   endpoints:
     web:
