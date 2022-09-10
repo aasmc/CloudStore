@@ -67,15 +67,20 @@ public class SystemItemServiceImpl implements SystemItemService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveAll(ImportsDto imports) {
         String updateDate = imports.getUpdateDate();
         Map<String, SystemItem> cache = new HashMap<>();
         for (var elem : imports.getItems()) {
-            var entity = buildFromDto(elem, updateDate, imports.getItems(), cache);
+            SystemItem entity;
+            if (cache.containsKey(elem.getId())) {
+                entity = cache.get(elem.getId());
+            } else {
+                entity = buildFromDto(elem, updateDate, imports.getItems(), cache);
+            }
             repo.save(entity);
         }
     }
+
 
     private SystemItem buildFromDto(SystemItemDto elem,
                                     String updateDate,

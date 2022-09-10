@@ -23,8 +23,6 @@ public class SystemItem {
     String url;
 
     @Version
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
     int version;
 
     @Column(name = "modified_at", nullable = false)
