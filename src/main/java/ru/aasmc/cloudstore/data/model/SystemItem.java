@@ -41,7 +41,7 @@ public class SystemItem {
     @Column(name = "item_size", nullable = true)
     Integer size;
 
-    @OneToMany(mappedBy = "parentItem", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "parentItem", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     List<SystemItem> children = new ArrayList<>();
 
     public void addChild(SystemItem child) {

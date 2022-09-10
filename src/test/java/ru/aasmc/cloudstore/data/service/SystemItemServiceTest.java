@@ -1,5 +1,6 @@
 package ru.aasmc.cloudstore.data.service;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,9 @@ import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
+import ru.aasmc.cloudstore.data.repository.SystemItemRepo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -22,6 +25,9 @@ public class SystemItemServiceTest {
 
     @Autowired
     private SystemItemService service;
+
+    @Autowired
+    private SystemItemRepo repo;
 
     @Test
     public void testSaveAll() {
@@ -121,6 +127,49 @@ public class SystemItemServiceTest {
         );
     }
 
+    @Test
+    public void whenSaveUpdatedElementThatIsInDB_infoGetsUpdated() {
+        service.saveAll(importsDto);
+
+        var newImports = new ImportsDto();
+        newImports.setUpdateDate(UPDATED_MODIFIED_AT);
+
+        var newChildFolder = new SystemItemDto();
+        newChildFolder.setParentId(ROOT_ID);
+        newChildFolder.setSize(null);
+        newChildFolder.setType(ItemType.FOLDER);
+        newChildFolder.setUrl(null);
+        newChildFolder.setId(CHILD_FOLDER_ID);
+
+        var newFileInFolder = new SystemItemDto();
+        newFileInFolder.setParentId(CHILD_FOLDER_ID);
+        newFileInFolder.setSize(THIRD_FILE_SIZE);
+        newFileInFolder.setType(ItemType.FILE);
+        newFileInFolder.setUrl("thirdFileUrl");
+        newFileInFolder.setId(NEW_FILE_ID);
+
+        newImports.setItems(Arrays.asList(newChildFolder, newFileInFolder));
+
+        service.saveAll(newImports);
+
+        Optional<SystemItemExtendedDto> opt = service.findById(CHILD_FOLDER_ID);
+        assertTrue(opt.isPresent());
+        SystemItemExtendedDto updatedFolder = opt.get();
+        assertAll(
+                () -> assertEquals(3, updatedFolder.getChildren().size()),
+                () -> assertEquals(ROOT_ID, updatedFolder.getParentId()),
+                () -> assertEquals(SECOND_FILE_SIZE + THIRD_FILE_SIZE, updatedFolder.getSize())
+        );
+
+        Optional<SystemItemExtendedDto> rootOpt = service.findById(ROOT_ID);
+        assertTrue(rootOpt.isPresent());
+        SystemItemExtendedDto updatedRoot = rootOpt.get();
+        assertAll(
+                () -> assertEquals(UPDATED_TOTAL_SIZE, updatedRoot.getSize()),
+                () -> assertEquals(2, updatedRoot.getChildren().size())
+        );
+    }
+
     private SystemItemExtendedDto rootExt;
     private SystemItemExtendedDto childFolderExt;
     private SystemItemExtendedDto childFileExt;
@@ -134,13 +183,17 @@ public class SystemItemServiceTest {
     private SystemItemDto childFolderChildFolder;
     private final int FIRST_FILE_SIZE = 1024;
     private final int SECOND_FILE_SIZE = 2048;
+    private final int THIRD_FILE_SIZE = 1000;
     private final int TOTAL_SIZE = FIRST_FILE_SIZE + SECOND_FILE_SIZE;
+    private final int UPDATED_TOTAL_SIZE = FIRST_FILE_SIZE + SECOND_FILE_SIZE + THIRD_FILE_SIZE;
     private final String MODIFIED_AT = "2022-05-28T21:12:01.000Z";
+    private final String UPDATED_MODIFIED_AT = "2022-06-28T21:12:01.000Z";
     private final String ROOT_ID = "1";
     private final String CHILD_FOLDER_ID = "2";
     private final String CHILD_FILE_ID = "3";
     private final String CHILD_FOLDER_CHILD_FILE_ID = "4";
     private final String CHILD_FOLDER_CHILD_FOLDER_ID = "5";
+    private final String NEW_FILE_ID = "6";
 
     @BeforeEach
     public void initTestEntities() {
@@ -209,6 +262,11 @@ public class SystemItemServiceTest {
         childFolderChildFolderExt = new SystemItemExtendedDto();
         initExtended(childFolderChildFolderExt, childFolderChildFolder);
         childFolderChildFolderExt.setChildren(Collections.emptyList());
+    }
+
+    @AfterEach
+    public void tearDown() {
+        repo.deleteAll();
     }
 
     private void initExtended(SystemItemExtendedDto ext, SystemItemDto item) {

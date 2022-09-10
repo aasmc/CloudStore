@@ -70,9 +70,26 @@ public class SystemItemServiceImpl implements SystemItemService {
         String updateDate = imports.getUpdateDate();
         Map<String, SystemItem> cache = new HashMap<>();
         for (var elem : imports.getItems()) {
-            var entity = buildFromDto(elem, updateDate, imports.getItems(), cache);
-            repo.save(entity);
+            Optional<SystemItem> inDbOpt = repo.findById(elem.getId());
+            if (inDbOpt.isPresent()) {
+                updateEntity(inDbOpt.get(), updateDate, elem, imports.getItems(), cache);
+            } else {
+                var entity = buildFromDto(elem, updateDate, imports.getItems(), cache);
+                repo.save(entity);
+            }
         }
+    }
+
+    private void updateEntity(SystemItem item,
+                              String updateDate,
+                              SystemItemDto elem,
+                              List<SystemItemDto> items,
+                              Map<String, SystemItem> cache) {
+        item.setSize(elem.getSize());
+        item.setUrl(elem.getUrl());
+        item.setModifiedAt(updateDate);
+        item.setType(elem.getType());
+
     }
 
     private SystemItem buildFromDto(SystemItemDto elem,
@@ -98,6 +115,9 @@ public class SystemItemServiceImpl implements SystemItemService {
                     var parent = parents.get(0);
                     var parentEntity = buildFromDto(parent, updateDate, items, cache);
                     addChildTo(parentEntity, entity);
+                } else {
+                    Optional<SystemItem> dbParent = repo.findById(elem.getParentId());
+                    dbParent.ifPresent(item -> addChildTo(item, entity));
                 }
             }
         }
