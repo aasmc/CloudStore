@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.EmptyResultDataAccessException;
 import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
@@ -21,6 +22,104 @@ public class SystemItemServiceTest {
 
     @Autowired
     private SystemItemService service;
+
+    @Test
+    public void testSaveAll() {
+        service.saveAll(importsDto);
+
+        Optional<SystemItemExtendedDto> op = service.findById(CHILD_FOLDER_CHILD_FILE_ID);
+        assertTrue(op.isPresent());
+
+        SystemItemExtendedDto result = op.get();
+
+
+        assertEquals(childFolderChildFileExt.getId(), result.getId());
+
+        op = service.findById(CHILD_FOLDER_ID);
+        assertTrue(op.isPresent());
+        var newResult = op.get();
+
+        assertAll(
+                () -> assertEquals(childFolderExt.getId(), newResult.getId()),
+                () -> assertEquals(SECOND_FILE_SIZE, newResult.getSize()),
+                () -> assertEquals(2, newResult.getChildren().size()),
+                () -> assertEquals(MODIFIED_AT, newResult.getDate())
+        );
+
+        op = service.findById(ROOT_ID);
+        assertTrue(op.isPresent());
+        var rootRes = op.get();
+
+        assertAll(
+                () -> assertEquals(rootExt.getId(), rootRes.getId()),
+                () -> assertEquals(TOTAL_SIZE, rootRes.getSize()),
+                () -> assertEquals(2, rootRes.getChildren().size()),
+                () -> assertEquals(MODIFIED_AT, rootRes.getDate())
+        );
+
+        op = service.findById(CHILD_FILE_ID);
+        assertTrue(op.isPresent());
+
+        var fileChild = op.get();
+        assertAll(
+                () -> assertEquals(CHILD_FILE_ID, fileChild.getId()),
+                () -> assertEquals(FIRST_FILE_SIZE, fileChild.getSize()),
+                () -> assertNull(fileChild.getChildren()),
+                () -> assertEquals(MODIFIED_AT, fileChild.getDate())
+        );
+    }
+
+    @Test
+    public void whenNoElementInDB_returns_empty_optional() {
+        service.saveAll(importsDto);
+
+        Optional<SystemItemExtendedDto> empty = service.findById("NO ID");
+        assertTrue(empty.isEmpty());
+    }
+
+    @Test
+    public void whenDeleteNotExistingElement_throws() {
+        service.saveAll(importsDto);
+
+        assertThrows(EmptyResultDataAccessException.class, () -> service.deleteById("NO_ID"));
+    }
+
+    @Test
+    public void whenDeleteExistingChildFolder_itGetsDeletedWithChildren_infoUpdated() {
+        service.saveAll(importsDto);
+
+        service.deleteById(CHILD_FOLDER_ID);
+
+        assertTrue(service.findById(CHILD_FOLDER_CHILD_FILE_ID).isEmpty());
+        assertTrue(service.findById(CHILD_FOLDER_CHILD_FOLDER_ID).isEmpty());
+
+        Optional<SystemItemExtendedDto> rootOpt = service.findById(ROOT_ID);
+        assertTrue(rootOpt.isPresent());
+        var rootRes = rootOpt.get();
+
+        assertAll(
+                () -> assertEquals(FIRST_FILE_SIZE, rootRes.getSize()),
+                () -> assertEquals(1, rootRes.getChildren().size())
+        );
+    }
+
+    @Test
+    public void whenDeleteExistingFile_itGetsDeleted_info_updated() {
+        service.saveAll(importsDto);
+
+        service.deleteById(CHILD_FILE_ID);
+
+        assertTrue(service.findById(CHILD_FILE_ID).isEmpty());
+
+        Optional<SystemItemExtendedDto> rootOpt = service.findById(ROOT_ID);
+        assertTrue(rootOpt.isPresent());
+        var rootRes = rootOpt.get();
+
+        assertAll(
+                () -> assertEquals(SECOND_FILE_SIZE, rootRes.getSize()),
+                () -> assertEquals(1, rootRes.getChildren().size())
+        );
+    }
 
     private SystemItemExtendedDto rootExt;
     private SystemItemExtendedDto childFolderExt;
@@ -120,49 +219,4 @@ public class SystemItemServiceTest {
         ext.setType(item.getType());
         ext.setParentId(item.getParentId());
     }
-
-    @Test
-    public void testSaveAll() {
-        service.saveAll(importsDto);
-
-        Optional<SystemItemExtendedDto> op = service.findById(CHILD_FOLDER_CHILD_FILE_ID);
-        assertTrue(op.isPresent());
-
-        SystemItemExtendedDto result = op.get();
-
-
-        assertEquals(childFolderChildFileExt.getId(), result.getId());
-
-        op = service.findById(CHILD_FOLDER_ID);
-        assertTrue(op.isPresent());
-        var newResult = op.get();
-
-        assertAll(
-                () -> assertEquals(childFolderExt.getId(), newResult.getId()),
-                () -> assertEquals(SECOND_FILE_SIZE, newResult.getSize()),
-                () -> assertEquals(2, newResult.getChildren().size())
-        );
-
-        op = service.findById(ROOT_ID);
-        assertTrue(op.isPresent());
-        var rootRes = op.get();
-
-        assertAll(
-                () -> assertEquals(rootExt.getId(), rootRes.getId()),
-                () -> assertEquals(TOTAL_SIZE, rootRes.getSize()),
-                () -> assertEquals(2, rootRes.getChildren().size())
-        );
-
-        op = service.findById(CHILD_FILE_ID);
-        assertTrue(op.isPresent());
-
-        var fileChild = op.get();
-        assertAll(
-                () -> assertEquals(CHILD_FILE_ID, fileChild.getId()),
-                () -> assertEquals(FIRST_FILE_SIZE, fileChild.getSize()),
-                () -> assertNull(fileChild.getChildren()),
-                () -> assertEquals(MODIFIED_AT, fileChild.getDate())
-        );
-    }
-
 }
