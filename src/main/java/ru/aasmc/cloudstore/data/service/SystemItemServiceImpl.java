@@ -36,16 +36,16 @@ public class SystemItemServiceImpl implements SystemItemService {
 
     private SystemItemExtendedDto mapFromEntity(SystemItem entity) {
         var extended = new SystemItemExtendedDto();
-        var sysDto = new SystemItemDto();
-        sysDto.setId(entity.getId());
-        sysDto.setUrl(entity.getUrl());
-        sysDto.setSize(entity.getSize());
-        sysDto.setType(entity.getType());
+        extended.setId(entity.getId());
+        extended.setUrl(entity.getUrl());
+        extended.setSize(entity.getSize());
+        extended.setType(entity.getType());
+        extended.setDate(entity.getModifiedAt());
 
         if (entity.getParentItem() != null) {
-            sysDto.setParentId(entity.getParentItem().getId());
+            extended.setParentId(entity.getParentItem().getId());
         } else {
-            sysDto.setParentId(null);
+            extended.setParentId(null);
         }
 
         if (entity.getType() == ItemType.FILE) {
@@ -56,7 +56,6 @@ public class SystemItemServiceImpl implements SystemItemService {
                     .collect(Collectors.toList());
             extended.setChildren(children);
         }
-        extended.setSystemItem(sysDto);
         return extended;
     }
 

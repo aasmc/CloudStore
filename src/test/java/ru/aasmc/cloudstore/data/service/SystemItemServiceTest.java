@@ -92,24 +92,33 @@ public class SystemItemServiceTest {
         ));
 
         rootExt = new SystemItemExtendedDto();
-        rootExt.setSystemItem(root);
+        initExtended(rootExt, root);
         rootExt.setChildren(Arrays.asList(childFolderExt, childFileExt));
 
         childFolderExt = new SystemItemExtendedDto();
-        childFolderExt.setSystemItem(childFolder);
+        initExtended(childFolderExt, childFolder);
         childFolderExt.setChildren(Arrays.asList(childFolderChildFileExt, childFolderChildFolderExt));
 
         childFileExt = new SystemItemExtendedDto();
         childFileExt.setChildren(null);
-        childFileExt.setSystemItem(childFile);
+        initExtended(childFileExt, childFile);
 
         childFolderChildFileExt = new SystemItemExtendedDto();
         childFolderChildFileExt.setChildren(null);
-        childFolderChildFileExt.setSystemItem(childFolderChildFile);
+        initExtended(childFolderChildFileExt, childFolderChildFile);
 
         childFolderChildFolderExt = new SystemItemExtendedDto();
-        childFolderChildFolderExt.setSystemItem(childFolderChildFolder);
+        initExtended(childFolderChildFolderExt, childFolderChildFolder);
         childFolderChildFolderExt.setChildren(Collections.emptyList());
+    }
+
+    private void initExtended(SystemItemExtendedDto ext, SystemItemDto item) {
+        ext.setId(item.getId());
+        ext.setDate(MODIFIED_AT);
+        ext.setSize(item.getSize());
+        ext.setUrl(item.getUrl());
+        ext.setType(item.getType());
+        ext.setParentId(item.getParentId());
     }
 
     @Test
@@ -122,15 +131,15 @@ public class SystemItemServiceTest {
         SystemItemExtendedDto result = op.get();
 
 
-        assertEquals(childFolderChildFileExt.getSystemItem().getId(), result.getSystemItem().getId());
+        assertEquals(childFolderChildFileExt.getId(), result.getId());
 
         op = service.findById(CHILD_FOLDER_ID);
         assertTrue(op.isPresent());
         var newResult = op.get();
 
         assertAll(
-                () -> assertEquals(childFolderExt.getSystemItem().getId(), newResult.getSystemItem().getId()),
-                () -> assertEquals(SECOND_FILE_SIZE, newResult.getSystemItem().getSize()),
+                () -> assertEquals(childFolderExt.getId(), newResult.getId()),
+                () -> assertEquals(SECOND_FILE_SIZE, newResult.getSize()),
                 () -> assertEquals(2, newResult.getChildren().size())
         );
 
@@ -139,9 +148,20 @@ public class SystemItemServiceTest {
         var rootRes = op.get();
 
         assertAll(
-                () -> assertEquals(rootExt.getSystemItem().getId(), rootRes.getSystemItem().getId()),
-                () -> assertEquals(TOTAL_SIZE, rootRes.getSystemItem().getSize()),
+                () -> assertEquals(rootExt.getId(), rootRes.getId()),
+                () -> assertEquals(TOTAL_SIZE, rootRes.getSize()),
                 () -> assertEquals(2, rootRes.getChildren().size())
+        );
+
+        op = service.findById(CHILD_FILE_ID);
+        assertTrue(op.isPresent());
+
+        var fileChild = op.get();
+        assertAll(
+                () -> assertEquals(CHILD_FILE_ID, fileChild.getId()),
+                () -> assertEquals(FIRST_FILE_SIZE, fileChild.getSize()),
+                () -> assertNull(fileChild.getChildren()),
+                () -> assertEquals(MODIFIED_AT, fileChild.getDate())
         );
     }
 
