@@ -13,7 +13,9 @@ import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -213,6 +215,36 @@ public class SystemItemServiceTest {
                 () -> assertEquals(1, updatedRoot.getChildren().size()),
                 () -> assertSame(updatedRoot.getChildren().get(0).getType(), ItemType.FILE)
         );
+    }
+
+    @Test
+    public void whenAddNewEntity_savedCorrectly_modificationDatePropagatedUp() {
+        var newImports = new ImportsDto();
+        newImports.setUpdateDate(UPDATED_MODIFIED_AT);
+
+        var newFileInFolder = new SystemItemDto();
+        newFileInFolder.setParentId(CHILD_FOLDER_ID);
+        newFileInFolder.setSize(THIRD_FILE_SIZE);
+        newFileInFolder.setType(ItemType.FILE);
+        newFileInFolder.setUrl("thirdFileUrl");
+        newFileInFolder.setId(NEW_FILE_ID);
+
+        newImports.setItems(List.of(newFileInFolder));
+
+        service.saveAll(newImports);
+
+        Optional<SystemItemExtendedDto> rootOpt = service.findById(ROOT_ID);
+        assertTrue(rootOpt.isPresent());
+
+        SystemItemExtendedDto root = rootOpt.get();
+        assertEquals(UPDATED_MODIFIED_AT, root.getDate());
+
+        Optional<SystemItemExtendedDto> folderChildOpt = root.getChildren().stream().filter(item -> item.getType() == ItemType.FOLDER)
+                .findFirst();
+        assertTrue(folderChildOpt.isPresent());
+        SystemItemExtendedDto f = folderChildOpt.get();
+
+        assertEquals(UPDATED_MODIFIED_AT, f.getDate());
     }
 
     private final int FIRST_FILE_SIZE = 1024;

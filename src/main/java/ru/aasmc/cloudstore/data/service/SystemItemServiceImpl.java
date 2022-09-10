@@ -109,12 +109,23 @@ public class SystemItemServiceImpl implements SystemItemService {
                     addChildTo(parentEntity, entity);
                 } else {
                     Optional<SystemItem> dbParent = repo.findById(elem.getParentId());
-                    dbParent.ifPresent(item -> addChildTo(item, entity));
+                    dbParent.ifPresent(item -> {
+                        addChildTo(item, entity);
+                        item.setModifiedAt(updateDate);
+                        propagateModificationUp(item, updateDate);
+                    });
                 }
             }
         }
         cache.put(elem.getId(), entity);
         return entity;
+    }
+
+    private void propagateModificationUp(SystemItem parentItem, String modifiedAt) {
+        while (parentItem != null) {
+            parentItem.setModifiedAt(modifiedAt);
+            parentItem = parentItem.getParentItem();
+        }
     }
 
     private void addChildTo(SystemItem parent, SystemItem child) {

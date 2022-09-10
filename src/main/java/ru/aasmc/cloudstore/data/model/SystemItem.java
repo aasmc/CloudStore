@@ -48,6 +48,7 @@ public class SystemItem {
         children.add(child);
     }
 
+
     public void removeChild(SystemItem child) {
         child.setParentItem(null);
         children.remove(child);

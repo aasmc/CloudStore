@@ -15,8 +15,10 @@ import ru.aasmc.cloudstore.exceptions.ItemNotFoundException;
 import ru.aasmc.cloudstore.exceptions.ValidationException;
 import ru.aasmc.cloudstore.util.DateProcessor;
 
+import javax.validation.Valid;
 import java.util.Optional;
 
+@Validated(BasicValidation.class)
 @RestController
 @RequestMapping("/")
 public class SystemItemController {
@@ -30,7 +32,7 @@ public class SystemItemController {
 
     @PostMapping(value = "imports", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    public void saveImports(@Validated(BasicValidation.class) @RequestBody ImportsDto imports,
+    public void saveImports(@Valid @RequestBody ImportsDto imports,
                             BindingResult result) {
         if (result.hasErrors()) {
             throw new ValidationException(HttpStatus.BAD_REQUEST, "Validation Failed");

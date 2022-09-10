@@ -6,11 +6,14 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.DefaultResponseErrorHandler;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
+import ru.aasmc.cloudstore.exceptions.ItemNotFoundException;
 
 import java.util.Arrays;
 
@@ -28,12 +31,6 @@ public class SystemItemControllerTest {
     @BeforeAll
     static void init() {
         restTemplate = new RestTemplate();
-        restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
-            @Override
-            public boolean hasError(HttpStatus statusCode) {
-                return false;
-            }
-        });
     }
 
     @BeforeEach
@@ -56,34 +53,37 @@ public class SystemItemControllerTest {
 
     @Test
     public void shouldReturn404_ifNotFound() {
-        ResponseEntity<String> err = restTemplate.getForEntity(baseUrl.concat("nodes/10"), String.class);
-        assertAll(
-                () -> assertNotNull(err),
-                () -> assertEquals(HttpStatus.NOT_FOUND, err.getStatusCode()),
-                () -> assertTrue(err.getBody().contains("Item not found"))
-        );
+        var ex = assertThrows(HttpClientErrorException.NotFound.class, () -> {
+            restTemplate.getForEntity(baseUrl.concat("nodes/10"), String.class);
+        });
+
+        String msg = ex.getMessage();
+        assert msg != null;
+        assertTrue(msg.contains("Item not found"));
     }
 
     @Test
     public void shouldDeleteExistingItem() {
         restTemplate.delete(baseUrl.concat("delete/5?date=2022-05-28T21:12:01.516Z"));
-        ResponseEntity<String> err = restTemplate.getForEntity(baseUrl.concat("nodes/5"), String.class);
-        assertAll(
-                () -> assertNotNull(err),
-                () -> assertEquals(HttpStatus.NOT_FOUND, err.getStatusCode()),
-                () -> assertTrue(err.getBody().contains("Item not found"))
-        );
+        var ex = assertThrows(HttpClientErrorException.NotFound.class, () -> {
+            restTemplate.getForEntity(baseUrl.concat("nodes/5"), String.class);
+        });
+
+        assertTrue(ex.getMessage().contains("Item not found"));
     }
 
     @Test
     public void shouldReturnValidationError_whenDeleteWithIncorrectDate() {
-        restTemplate.delete(baseUrl.concat("delete/5?date=2022-0"));
-        ResponseEntity<String> err = restTemplate.getForEntity(baseUrl.concat("nodes/5"), String.class);
-        assertAll(
-                () -> assertNotNull(err),
-                () -> assertEquals(HttpStatus.BAD_REQUEST, err.getStatusCode()),
-                () -> assertTrue(err.getBody().contains("Validation Failed"))
-        );
+        var ex = assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.delete(baseUrl.concat("delete/5?date=202"));
+        });
+
+        assertTrue(ex.getMessage().contains("Validation Failed"));
+    }
+
+    @Test
+    public void shouldReturnValidationError_whenSavingWithIncorrectFields() {
+
     }
 
     private ImportsDto createInitialImports() {
