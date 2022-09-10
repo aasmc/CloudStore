@@ -13,12 +13,12 @@ import javax.validation.constraints.NotNull;
 @Getter
 @Setter
 @ToString
-@UrlConstraint
-@SizeConstraint
+@UrlConstraint(groups = BasicValidation.class)
+@SizeConstraint(groups = BasicValidation.class)
 @NoArgsConstructor
 public class SystemItemDto {
 
-    @NotNull
+    @NotNull(groups = BasicValidation.class)
     private String id;
 
     private String url;

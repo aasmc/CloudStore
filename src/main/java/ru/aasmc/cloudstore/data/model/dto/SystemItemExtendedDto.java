@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class SystemItemExtendedDto {
 
-    @NotNull
+    @NotNull(groups = BasicValidation.class)
     private String id;
 
     private String url;
