@@ -9,6 +9,7 @@ import org.hibernate.annotations.OnDeleteAction;
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity(name = "system_item")
 @Getter
@@ -41,7 +42,7 @@ public class SystemItem {
     @Column(name = "item_size", nullable = true)
     Integer size;
 
-    @OneToMany(mappedBy = "parentItem", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parentItem", fetch = FetchType.LAZY, orphanRemoval = true)
     List<SystemItem> children = new ArrayList<>();
 
     public void addChild(SystemItem child) {
@@ -65,5 +66,18 @@ public class SystemItem {
             size += elem.getSize();
         }
         return size;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SystemItem that = (SystemItem) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

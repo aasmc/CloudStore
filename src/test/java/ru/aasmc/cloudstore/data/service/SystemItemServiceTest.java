@@ -12,7 +12,6 @@ import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
 import ru.aasmc.cloudstore.data.repository.SystemItemRepo;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -135,11 +134,11 @@ public class SystemItemServiceTest {
         newImports.setUpdateDate(UPDATED_MODIFIED_AT);
 
         var newChildFolder = new SystemItemDto();
-        newChildFolder.setParentId(ROOT_ID);
+        newChildFolder.setId(CHILD_FOLDER_ID);
+        newChildFolder.setUrl(null);
         newChildFolder.setSize(null);
         newChildFolder.setType(ItemType.FOLDER);
-        newChildFolder.setUrl(null);
-        newChildFolder.setId(CHILD_FOLDER_ID);
+        newChildFolder.setParentId(ROOT_ID);
 
         var newFileInFolder = new SystemItemDto();
         newFileInFolder.setParentId(CHILD_FOLDER_ID);

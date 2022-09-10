@@ -2,6 +2,7 @@ package ru.aasmc.cloudstore.data.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.SystemItem;
@@ -66,30 +67,14 @@ public class SystemItemServiceImpl implements SystemItemService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveAll(ImportsDto imports) {
         String updateDate = imports.getUpdateDate();
         Map<String, SystemItem> cache = new HashMap<>();
         for (var elem : imports.getItems()) {
-            Optional<SystemItem> inDbOpt = repo.findById(elem.getId());
-            if (inDbOpt.isPresent()) {
-                updateEntity(inDbOpt.get(), updateDate, elem, imports.getItems(), cache);
-            } else {
-                var entity = buildFromDto(elem, updateDate, imports.getItems(), cache);
-                repo.save(entity);
-            }
+            var entity = buildFromDto(elem, updateDate, imports.getItems(), cache);
+            repo.save(entity);
         }
-    }
-
-    private void updateEntity(SystemItem item,
-                              String updateDate,
-                              SystemItemDto elem,
-                              List<SystemItemDto> items,
-                              Map<String, SystemItem> cache) {
-        item.setSize(elem.getSize());
-        item.setUrl(elem.getUrl());
-        item.setModifiedAt(updateDate);
-        item.setType(elem.getType());
-
     }
 
     private SystemItem buildFromDto(SystemItemDto elem,
