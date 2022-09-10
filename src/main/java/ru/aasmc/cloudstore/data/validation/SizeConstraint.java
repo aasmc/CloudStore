@@ -6,7 +6,7 @@ import java.lang.annotation.*;
 
 @Documented
 @Constraint(validatedBy = SizeConstraintValidator.class)
-@Target({ElementType.METHOD, ElementType.FIELD})
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SizeConstraint {
     String message() default "Incorrect size";
@@ -14,4 +14,5 @@ public @interface SizeConstraint {
     Class<?>[] groups() default {};
 
     Class<? extends Payload>[] payload() default {};
+
 }

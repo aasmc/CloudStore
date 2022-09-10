@@ -1,18 +1,25 @@
 package ru.aasmc.cloudstore.util;
 
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class DateProcessor {
-    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
-    private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
-    public static ZonedDateTime toDate(final String date) {
-        return ZonedDateTime.parse(date, formatter);
-    }
-
-    public static String toString(final ZonedDateTime date) {
-        return date.format(formatter);
+    public static boolean checkDate(String date) {
+        try {
+            DateTimeFormatter formatter;
+            if (date.contains("Z") || date.contains(".")) {
+                formatter = DateTimeFormatter.ISO_ZONED_DATE_TIME;
+            } else if (date.contains("T")) {
+                formatter = DateTimeFormatter.ISO_DATE_TIME;
+            } else {
+                formatter = DateTimeFormatter.ISO_DATE;
+            }
+            formatter.parse(date);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
     }
 
 }

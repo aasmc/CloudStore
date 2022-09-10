@@ -1,15 +1,15 @@
 package ru.aasmc.cloudstore.data.service;
 
-import ru.aasmc.cloudstore.data.model.SystemItemDto;
+import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
+import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface SystemItemService {
 
-    Optional<SystemItemDto> findById(String id);
+    Optional<SystemItemExtendedDto> findById(String id);
 
     void deleteById(String id);
 
-    void saveAll(List<SystemItemDto> items);
+    void saveAll(ImportsDto imports);
 }

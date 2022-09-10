@@ -1,12 +1,13 @@
 package ru.aasmc.cloudstore.data.validation;
 
 import ru.aasmc.cloudstore.data.model.ItemType;
-import ru.aasmc.cloudstore.data.model.SystemItemDto;
+import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
 public class SizeConstraintValidator implements ConstraintValidator<SizeConstraint, SystemItemDto> {
+
     @Override
     public void initialize(SizeConstraint constraintAnnotation) {
     }
