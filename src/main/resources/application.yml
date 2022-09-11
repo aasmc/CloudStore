@@ -6,23 +6,26 @@ server:
     enabled: true
   address: 0.0.0.0
 spring:
+  application:
+    name: cloudstore-app
   datasource:
     hikari:
-      driver-class-name: org.h2.Driver
-      jdbc-url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-      username: sa
-      password:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: jdbc:postgresql://${DB_ADDR:localhost}:5432/cloudstore-db
+      username: ${DB_USER:postgres}
+      password: ${DB_PASSWORD:postgres}
       maximum-pool-size: 5
       connection-test-query: "SELECT 1"
       pool-name: cloudStorePool
   jpa:
     generate-ddl: true
     hibernate:
-      ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
-  h2:
-    console:
-      enabled: true
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL95Dialect
+        default_schema: schema
   cache:
     jcache:
       config: classpath:echache.xml
