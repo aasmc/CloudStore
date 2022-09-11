@@ -50,6 +50,30 @@ public class SystemItemControllerTest {
 
     @Order(2)
     @Test
+    public void sameImports_nothingChanges() {
+        restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
+        SystemItemExtendedDto response =
+                restTemplate.getForObject(baseUrl.concat("nodes/1"), SystemItemExtendedDto.class);
+        assertAll(
+                () -> assertNotNull(response),
+                () -> assertEquals("1", response.getId()),
+                () -> assertEquals(2, response.getChildren().size())
+        );
+
+
+        restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
+        SystemItemExtendedDto newResponse =
+                restTemplate.getForObject(baseUrl.concat("nodes/1"), SystemItemExtendedDto.class);
+        assertAll(
+                () -> assertNotNull(newResponse),
+                () -> assertEquals("1", newResponse.getId()),
+                () -> assertEquals(2, newResponse.getChildren().size())
+        );
+
+    }
+
+    @Order(3)
+    @Test
     public void shouldReturn404_ifNotFound() {
         var ex = assertThrows(HttpClientErrorException.NotFound.class, () -> {
             restTemplate.getForEntity(baseUrl.concat("nodes/10"), String.class);
@@ -60,7 +84,7 @@ public class SystemItemControllerTest {
         assertTrue(msg.contains("Item not found"));
     }
 
-    @Order(3)
+    @Order(4)
     @Test
     public void shouldDeleteExistingItem() {
         restTemplate.delete(baseUrl.concat("delete/5?date=2022-05-28T21:12:01.516Z"));
@@ -71,7 +95,7 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Item not found"));
     }
 
-    @Order(4)
+    @Order(5)
     @Test
     public void shouldReturnValidationError_whenDeleteWithIncorrectDate() {
         var ex = assertThrows(HttpClientErrorException.class, () -> {
@@ -81,7 +105,7 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Validation Failed"));
     }
 
-    @Order(5)
+    @Order(6)
     @Test
     public void shouldReturnValidationError_whenSavingWithIncorrectDateField() {
         var newImports = createNewImportsIncorrectDate();
@@ -91,7 +115,7 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Validation Failed"));
     }
 
-    @Order(6)
+    @Order(7)
     @Test
     public void shouldReturnValidationError_whenSavingWithFolderHavingUrl() {
         var newImports = createNewImportsFolderUrl();

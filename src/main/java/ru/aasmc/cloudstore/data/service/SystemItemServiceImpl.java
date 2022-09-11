@@ -2,7 +2,6 @@ package ru.aasmc.cloudstore.data.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.SystemItem;
@@ -30,7 +29,6 @@ public class SystemItemServiceImpl implements SystemItemService {
 
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<SystemItemExtendedDto> findById(String id) {
         Optional<SystemItem> optional = repo.findById(id);
         if (optional.isEmpty()) return Optional.empty();
@@ -65,7 +63,6 @@ public class SystemItemServiceImpl implements SystemItemService {
 
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void deleteById(String id) {
         repo.deleteById(id);
     }

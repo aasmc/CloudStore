@@ -22,9 +22,6 @@ public class SystemItem {
     @Column(name = "url", nullable = true)
     String url;
 
-    @Version
-    int version;
-
     @Column(name = "modified_at", nullable = false)
     String modifiedAt;
 

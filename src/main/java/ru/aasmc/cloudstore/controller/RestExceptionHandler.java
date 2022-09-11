@@ -1,5 +1,7 @@
 package ru.aasmc.cloudstore.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -13,9 +15,12 @@ import javax.validation.ConstraintViolationException;
 @ControllerAdvice
 public class RestExceptionHandler {
 
+    Logger logger = LoggerFactory.getLogger(RestExceptionHandler.class);
+
     @ExceptionHandler
     @ResponseBody
     public ResponseEntity<String> handleException(Exception e) {
+        logger.info(e.getMessage());
         if (e instanceof ValidationException) {
             ValidationException ve = (ValidationException) e;
             return new ResponseEntity<>(ve.getMessage(), ve.getStatus());

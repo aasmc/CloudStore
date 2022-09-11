@@ -246,6 +246,60 @@ public class SystemItemServiceTest {
         assertEquals(UPDATED_MODIFIED_AT, f.getDate());
     }
 
+    @Test
+    public void saveSameData_nothingChanges() {
+        var newImports = new ImportsDto();
+        newImports.setUpdateDate(MODIFIED_AT);
+
+        var root = new SystemItemDto();
+        root.setId(ROOT_ID);
+        root.setUrl(null);
+        root.setSize(null);
+        root.setType(ItemType.FOLDER);
+        root.setParentId(null);
+
+        var folder = new SystemItemDto();
+        folder.setParentId(ROOT_ID);
+        folder.setSize(null);
+        folder.setType(ItemType.FOLDER);
+        folder.setUrl(null);
+        folder.setId(CHILD_FOLDER_ID);
+
+        var file = new SystemItemDto();
+        file.setParentId(ROOT_ID);
+        file.setSize(FIRST_FILE_SIZE);
+        file.setType(ItemType.FILE);
+        file.setUrl("childFileUrl");
+        file.setId(CHILD_FILE_ID);
+
+        var fFile = new SystemItemDto();
+        fFile.setParentId(CHILD_FOLDER_ID);
+        fFile.setSize(SECOND_FILE_SIZE);
+        fFile.setType(ItemType.FILE);
+        fFile.setUrl("childFolderChildFileUrl");
+        fFile.setId(CHILD_FOLDER_CHILD_FILE_ID);
+
+        var fFolder = new SystemItemDto();
+        fFolder.setParentId(CHILD_FOLDER_ID);
+        fFolder.setSize(null);
+        fFolder.setType(ItemType.FOLDER);
+        fFolder.setUrl(null);
+        fFolder.setId(CHILD_FOLDER_CHILD_FOLDER_ID);
+
+        newImports.setItems(Arrays.asList(root, folder, file, fFile, fFolder));
+
+        service.saveAll(newImports);
+
+        Optional<SystemItemExtendedDto> rootOpt = service.findById(ROOT_ID);
+        assertTrue(rootOpt.isPresent());
+
+        SystemItemExtendedDto resultRoot = rootOpt.get();
+        assertEquals(MODIFIED_AT, resultRoot.getDate());
+
+        SystemItemExtendedDto childFolder = service.findById(CHILD_FOLDER_ID).get();
+        assertEquals(2, childFolder.getChildren().size());
+    }
+
     private final int FIRST_FILE_SIZE = 1024;
     private final int SECOND_FILE_SIZE = 2048;
     private final int THIRD_FILE_SIZE = 1000;
