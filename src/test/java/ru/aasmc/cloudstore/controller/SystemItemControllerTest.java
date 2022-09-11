@@ -3,22 +3,19 @@ package ru.aasmc.cloudstore.controller;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
-import ru.aasmc.cloudstore.exceptions.ItemNotFoundException;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class SystemItemControllerTest {
     @LocalServerPort
@@ -36,12 +33,12 @@ public class SystemItemControllerTest {
     @BeforeEach
     void setup() {
         baseUrl = baseUrl.concat(":").concat(port.toString()).concat("/");
-        var imports = createInitialImports();
-        restTemplate.postForObject(baseUrl.concat("imports/"), imports, String.class);
     }
 
+    @Order(1)
     @Test
     public void shouldReturnRootEntity() {
+        restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
         SystemItemExtendedDto response =
                 restTemplate.getForObject(baseUrl.concat("nodes/1"), SystemItemExtendedDto.class);
         assertAll(
@@ -51,6 +48,7 @@ public class SystemItemControllerTest {
         );
     }
 
+    @Order(2)
     @Test
     public void shouldReturn404_ifNotFound() {
         var ex = assertThrows(HttpClientErrorException.NotFound.class, () -> {
@@ -62,6 +60,7 @@ public class SystemItemControllerTest {
         assertTrue(msg.contains("Item not found"));
     }
 
+    @Order(3)
     @Test
     public void shouldDeleteExistingItem() {
         restTemplate.delete(baseUrl.concat("delete/5?date=2022-05-28T21:12:01.516Z"));
@@ -72,6 +71,7 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Item not found"));
     }
 
+    @Order(4)
     @Test
     public void shouldReturnValidationError_whenDeleteWithIncorrectDate() {
         var ex = assertThrows(HttpClientErrorException.class, () -> {
@@ -81,9 +81,42 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Validation Failed"));
     }
 
+    @Order(5)
     @Test
-    public void shouldReturnValidationError_whenSavingWithIncorrectFields() {
+    public void shouldReturnValidationError_whenSavingWithIncorrectDateField() {
+        var newImports = createNewImportsIncorrectDate();
+        var ex = assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.postForObject(baseUrl.concat("imports/"), newImports, String.class);
+        });
+        assertTrue(ex.getMessage().contains("Validation Failed"));
+    }
 
+    @Order(6)
+    @Test
+    public void shouldReturnValidationError_whenSavingWithFolderHavingUrl() {
+        var newImports = createNewImportsFolderUrl();
+        var ex = assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.postForObject(baseUrl.concat("imports/"), newImports, String.class);
+        });
+        assertTrue(ex.getMessage().contains("Validation Failed"));
+    }
+
+    private ImportsDto createNewImportsIncorrectDate() {
+        var importsDto = new ImportsDto();
+        importsDto.setUpdateDate("022--28T21:12:01.516Z");
+        var folder = new SystemItemDto();
+        initItem(folder, "5", null, null, ItemType.FOLDER, null);
+        importsDto.setItems(List.of(folder));
+        return importsDto;
+    }
+
+    private ImportsDto createNewImportsFolderUrl() {
+        var importsDto = new ImportsDto();
+        importsDto.setUpdateDate("2022-05-28T21:12:01.516Z");
+        var folder = new SystemItemDto();
+        initItem(folder, "5", "FolderUrl", null, ItemType.FOLDER, null);
+        importsDto.setItems(List.of(folder));
+        return importsDto;
     }
 
     private ImportsDto createInitialImports() {

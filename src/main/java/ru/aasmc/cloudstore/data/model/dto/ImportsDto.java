@@ -14,6 +14,6 @@ public class ImportsDto {
 
     List<SystemItemDto> items;
 
-    @DateConstraint(groups = BasicValidation.class)
+    @DateConstraint
     String updateDate;
 }

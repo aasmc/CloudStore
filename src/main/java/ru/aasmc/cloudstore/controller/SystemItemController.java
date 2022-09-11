@@ -5,10 +5,10 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.aasmc.cloudstore.data.model.dto.BasicValidation;
+import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
+import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
 import ru.aasmc.cloudstore.data.service.SystemItemService;
 import ru.aasmc.cloudstore.exceptions.ItemNotFoundException;
@@ -16,9 +16,12 @@ import ru.aasmc.cloudstore.exceptions.ValidationException;
 import ru.aasmc.cloudstore.util.DateProcessor;
 
 import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-@Validated(BasicValidation.class)
 @RestController
 @RequestMapping("/")
 public class SystemItemController {
@@ -34,10 +37,36 @@ public class SystemItemController {
     @ResponseStatus(HttpStatus.OK)
     public void saveImports(@Valid @RequestBody ImportsDto imports,
                             BindingResult result) {
-        if (result.hasErrors()) {
+
+        if (result.hasErrors() || inputValidationFailed(imports)) {
             throw new ValidationException(HttpStatus.BAD_REQUEST, "Validation Failed");
         }
+
         service.saveAll(imports);
+    }
+
+    private boolean inputValidationFailed(ImportsDto imports) {
+        Map<ItemType, List<SystemItemDto>> byType = imports.getItems().stream()
+                .collect(Collectors.groupingBy(SystemItemDto::getType));
+
+        List<SystemItemDto> folders = byType.get(ItemType.FOLDER);
+        boolean folderViolated = false;
+        if (folders != null) {
+            folderViolated = folders.parallelStream()
+                    .anyMatch(item -> item.getSize() != null || item.getUrl() != null);
+        }
+        List<SystemItemDto> files = byType.get(ItemType.FILE);
+        boolean fileViolated = false;
+        if (files != null) {
+            fileViolated = files.parallelStream()
+                    .anyMatch(item -> item.getUrl().length() > 255 || item.getSize() < 1);
+        }
+        Set<String> ids = imports.getItems().stream()
+                .map(SystemItemDto::getId)
+                .collect(Collectors.toSet());
+        boolean duplicateIdsFound = ids.size() != imports.getItems().size();
+
+        return folderViolated || fileViolated || duplicateIdsFound;
     }
 
     @ResponseStatus(HttpStatus.OK)
@@ -56,7 +85,7 @@ public class SystemItemController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping(value = "nodes/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public SystemItemExtendedDto getItem(@PathVariable String id) {
-        if (id  == null || id.isEmpty() || id.isBlank()) {
+        if (id == null || id.isEmpty() || id.isBlank()) {
             throw new ValidationException(HttpStatus.BAD_REQUEST, "Validation Failed");
         }
         Optional<SystemItemExtendedDto> opt = service.findById(id);

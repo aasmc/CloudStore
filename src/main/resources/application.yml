@@ -30,7 +30,7 @@ bucket4j:
   enabled: true
   filters:
     - cache-name: buckets
-      url: /imports
+      url: imports/
       rate-limits:
         - bandwidths:
             - capacity: 1000
