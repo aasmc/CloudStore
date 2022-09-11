@@ -1,11 +1,20 @@
-drop table if exists SYSTEM_ITEM;
-
-CREATE TABLE SYSTEM_ITEM
-(
-    ID          VARCHAR PRIMARY KEY,
-    URL         VARCHAR,
-    MODIFIED_AT VARCHAR NOT NULL,
-    PARENT_ID   VARCHAR,
-    ITEM_TYPE        VARCHAR NOT NULL,
-    ITEM_SIZE        INT
-);
+-- drop table if exists SYSTEM_ITEM;
+--
+-- CREATE TABLE SYSTEM_ITEM
+-- (
+--     ID          VARCHAR PRIMARY KEY,
+--     URL         VARCHAR,
+--     MODIFIED_AT VARCHAR NOT NULL,
+--     PARENT_ID   VARCHAR,
+--     ITEM_TYPE        VARCHAR NOT NULL,
+--     ITEM_SIZE        INT
+-- );
+--
+-- drop table if exists MOD_ITEM;
+--
+-- CREATE TABLE MOD_ITEM
+-- (
+--     ID BIGINT PRIMARY KEY
+--     , MODIFIED_AT TIMESTAMP NOT NULL
+--     , MODIFIED_ITEM_ID VARCHAR NOT NULL
+-- );

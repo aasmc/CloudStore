@@ -9,6 +9,7 @@ import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
+import ru.aasmc.cloudstore.data.model.dto.UpdateItemsWrapper;
 
 import java.util.Arrays;
 import java.util.List;
@@ -59,7 +60,6 @@ public class SystemItemControllerTest {
                 () -> assertEquals("1", response.getId()),
                 () -> assertEquals(2, response.getChildren().size())
         );
-
 
         restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
         SystemItemExtendedDto newResponse =
@@ -123,6 +123,15 @@ public class SystemItemControllerTest {
             restTemplate.postForObject(baseUrl.concat("imports/"), newImports, String.class);
         });
         assertTrue(ex.getMessage().contains("Validation Failed"));
+    }
+
+    @Order(8)
+    @Test
+    public void shouldReturnListOfUpdates() {
+        UpdateItemsWrapper updates =
+                restTemplate.getForObject(baseUrl.concat("updates?").concat("date=2022-05-28T23:12:01.516Z"), UpdateItemsWrapper.class);
+        assertFalse(updates.getItems().isEmpty());
+        assertEquals(4, updates.getItems().size());
     }
 
     private ImportsDto createNewImportsIncorrectDate() {

@@ -7,15 +7,14 @@ import org.springframework.http.MediaType;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.aasmc.cloudstore.data.model.ItemType;
-import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
-import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
-import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
+import ru.aasmc.cloudstore.data.model.dto.*;
 import ru.aasmc.cloudstore.data.service.SystemItemService;
 import ru.aasmc.cloudstore.exceptions.ItemNotFoundException;
 import ru.aasmc.cloudstore.exceptions.ValidationException;
 import ru.aasmc.cloudstore.util.DateProcessor;
 
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,6 +92,20 @@ public class SystemItemController {
             return opt.get();
         }
         throw new ItemNotFoundException(HttpStatus.NOT_FOUND, "Item not found");
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping(value = "updates", produces = MediaType.APPLICATION_JSON_VALUE)
+    public UpdateItemsWrapper getUpdates(@RequestParam String date) {
+        if (!DateProcessor.checkDate(date)) {
+            throw new ValidationException(HttpStatus.BAD_REQUEST, "Validation Failed");
+        }
+        LocalDateTime before = DateProcessor.toDate(date);
+        LocalDateTime after = before.minusDays(1);
+        List<UpdateItemDto> updates = service.findUpdates(before, after);
+        var result = new UpdateItemsWrapper();
+        result.setItems(updates);
+        return result;
     }
 
 }

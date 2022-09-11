@@ -11,7 +11,13 @@ import ru.aasmc.cloudstore.data.model.ItemType;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
+import ru.aasmc.cloudstore.data.model.dto.UpdateItemDto;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Month;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -248,8 +254,49 @@ public class SystemItemServiceTest {
 
     @Test
     public void saveSameData_nothingChanges() {
+        var newImports = createNewImports(MODIFIED_AT, true);
+
+        service.saveAll(newImports);
+
+        Optional<SystemItemExtendedDto> rootOpt = service.findById(ROOT_ID);
+        assertTrue(rootOpt.isPresent());
+
+        SystemItemExtendedDto resultRoot = rootOpt.get();
+        assertEquals(MODIFIED_AT, resultRoot.getDate());
+
+        SystemItemExtendedDto childFolder = service.findById(CHILD_FOLDER_ID).get();
+        assertEquals(2, childFolder.getChildren().size());
+    }
+
+    @Test
+    public void whenSaveUpdates_returnsCorrectList() {
+        var newImports = createNewImports(UPDATED_MODIFIED_AT, false);
+        service.saveAll(newImports);
+        LocalDateTime before = LocalDateTime.of(
+                LocalDate.of(2022, Month.MAY, 29),
+                LocalTime.of(22, 12, 1)
+        );
+        LocalDateTime after = before.minusDays(1);
+        List<UpdateItemDto> updates = service.findUpdates(before, after);
+        assertFalse(updates.isEmpty());
+        assertEquals(4, updates.size());
+    }
+
+    @Test
+    public void whenNoUpdates_returnsEmptyList() {
+        LocalDateTime before = LocalDateTime.of(
+                LocalDate.of(2022, Month.MAY, 30),
+                LocalTime.of(20, 12, 1)
+        );
+        LocalDateTime after = before.minusDays(1);
+
+        List<UpdateItemDto> updates = service.findUpdates(before, after);
+        assertTrue(updates.isEmpty());
+    }
+
+    private ImportsDto createNewImports(String modifiedAt, boolean createInnerFolder) {
         var newImports = new ImportsDto();
-        newImports.setUpdateDate(MODIFIED_AT);
+        newImports.setUpdateDate(modifiedAt);
 
         var root = new SystemItemDto();
         root.setId(ROOT_ID);
@@ -279,25 +326,23 @@ public class SystemItemServiceTest {
         fFile.setUrl("childFolderChildFileUrl");
         fFile.setId(CHILD_FOLDER_CHILD_FILE_ID);
 
-        var fFolder = new SystemItemDto();
-        fFolder.setParentId(CHILD_FOLDER_ID);
-        fFolder.setSize(null);
-        fFolder.setType(ItemType.FOLDER);
-        fFolder.setUrl(null);
-        fFolder.setId(CHILD_FOLDER_CHILD_FOLDER_ID);
+        List<SystemItemDto> items = new ArrayList<>();
+        items.add(root);
+        items.add(folder);
+        items.add(file);
+        items.add(fFile);
 
-        newImports.setItems(Arrays.asList(root, folder, file, fFile, fFolder));
-
-        service.saveAll(newImports);
-
-        Optional<SystemItemExtendedDto> rootOpt = service.findById(ROOT_ID);
-        assertTrue(rootOpt.isPresent());
-
-        SystemItemExtendedDto resultRoot = rootOpt.get();
-        assertEquals(MODIFIED_AT, resultRoot.getDate());
-
-        SystemItemExtendedDto childFolder = service.findById(CHILD_FOLDER_ID).get();
-        assertEquals(2, childFolder.getChildren().size());
+        if (createInnerFolder) {
+            var fFolder = new SystemItemDto();
+            fFolder.setParentId(CHILD_FOLDER_ID);
+            fFolder.setSize(null);
+            fFolder.setType(ItemType.FOLDER);
+            fFolder.setUrl(null);
+            fFolder.setId(CHILD_FOLDER_CHILD_FOLDER_ID);
+            items.add(fFolder);
+        }
+        newImports.setItems(items);
+        return newImports;
     }
 
     private final int FIRST_FILE_SIZE = 1024;
@@ -306,7 +351,7 @@ public class SystemItemServiceTest {
     private final int TOTAL_SIZE = FIRST_FILE_SIZE + SECOND_FILE_SIZE;
     private final int UPDATED_TOTAL_SIZE = FIRST_FILE_SIZE + SECOND_FILE_SIZE + THIRD_FILE_SIZE;
     private final String MODIFIED_AT = "2022-05-28T21:12:01.000Z";
-    private final String UPDATED_MODIFIED_AT = "2022-06-28T21:12:01.000Z";
+    private final String UPDATED_MODIFIED_AT = "2022-05-29T22:12:01.000Z";
     private final String ROOT_ID = "1";
     private final String CHILD_FOLDER_ID = "2";
     private final String CHILD_FILE_ID = "3";

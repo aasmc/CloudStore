@@ -4,16 +4,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.aasmc.cloudstore.data.model.ItemType;
+import ru.aasmc.cloudstore.data.model.ModItem;
+import ru.aasmc.cloudstore.data.model.ModItemId;
 import ru.aasmc.cloudstore.data.model.SystemItem;
 import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
+import ru.aasmc.cloudstore.data.model.dto.UpdateItemDto;
+import ru.aasmc.cloudstore.data.repository.ModItemRepo;
 import ru.aasmc.cloudstore.data.repository.SystemItemRepo;
+import ru.aasmc.cloudstore.util.DateProcessor;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,10 +24,12 @@ import java.util.stream.Collectors;
 public class SystemItemServiceImpl implements SystemItemService {
 
     private SystemItemRepo repo;
+    private ModItemRepo modItemRepo;
 
     @Autowired
-    public SystemItemServiceImpl(SystemItemRepo repo) {
+    public SystemItemServiceImpl(SystemItemRepo repo, ModItemRepo modItemRepo) {
         this.repo = repo;
+        this.modItemRepo = modItemRepo;
     }
 
 
@@ -65,6 +70,7 @@ public class SystemItemServiceImpl implements SystemItemService {
     @Override
     public void deleteById(String id) {
         repo.deleteById(id);
+        modItemRepo.deleteAllByModifiedItemId(id);
     }
 
     @Override
@@ -78,7 +84,34 @@ public class SystemItemServiceImpl implements SystemItemService {
             } else {
                 entity = buildFromDto(elem, updateDate, imports.getItems(), cache);
             }
-            repo.save(entity);
+            // Save persisted entity!
+            saveModItem(repo.save(entity), updateDate);
+        }
+    }
+
+    @Override
+    public List<UpdateItemDto> findUpdates(LocalDateTime before, LocalDateTime after) {
+        var systemItems = repo.findByModificationDate(before, after);
+        if (!systemItems.isEmpty()) {
+            var result = new ArrayList<UpdateItemDto>();
+            for (var item : systemItems) {
+                var dto = new UpdateItemDto();
+                dto.setId(item.getId());
+                dto.setType(item.getType());
+                dto.setUrl(item.getUrl());
+                dto.setSize(item.getSize());
+                SystemItem parentItem = item.getParentItem();
+                if (parentItem != null) {
+                    dto.setParentId(parentItem.getId());
+                } else {
+                    dto.setParentId(null);
+                }
+                dto.setDate(item.getModifiedAt());
+                result.add(dto);
+            }
+            return result;
+        } else {
+            return Collections.emptyList();
         }
     }
 
@@ -111,6 +144,7 @@ public class SystemItemServiceImpl implements SystemItemService {
                     dbParent.ifPresent(item -> {
                         addChildTo(item, entity);
                         item.setModifiedAt(updateDate);
+                        saveModItem(item, updateDate);
                         propagateModificationUp(item, updateDate);
                     });
                 }
@@ -120,9 +154,19 @@ public class SystemItemServiceImpl implements SystemItemService {
         return entity;
     }
 
+    private void saveModItem(SystemItem systemItem, String updateDate) {
+        ModItem modItem = new ModItem();
+        ModItemId id = new ModItemId();
+        id.setModifiedAt(DateProcessor.toDate(updateDate));
+        id.setModifiedItemId(systemItem.getId());
+        modItem.setId(id);
+        modItemRepo.save(modItem);
+    }
+
     private void propagateModificationUp(SystemItem parentItem, String modifiedAt) {
         while (parentItem != null) {
             parentItem.setModifiedAt(modifiedAt);
+            saveModItem(parentItem, modifiedAt);
             parentItem = parentItem.getParentItem();
         }
     }
