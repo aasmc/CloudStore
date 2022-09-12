@@ -6,10 +6,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import ru.aasmc.cloudstore.data.model.ItemType;
-import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
-import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
-import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
-import ru.aasmc.cloudstore.data.model.dto.UpdateItemsWrapper;
+import ru.aasmc.cloudstore.data.model.dto.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,12 +31,12 @@ public class SystemItemControllerTest {
     @BeforeEach
     void setup() {
         baseUrl = baseUrl.concat(":").concat(port.toString()).concat("/");
+        restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
     }
 
-    @Order(1)
+
     @Test
     public void shouldReturnRootEntity() {
-        restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
         SystemItemExtendedDto response =
                 restTemplate.getForObject(baseUrl.concat("nodes/1"), SystemItemExtendedDto.class);
         assertAll(
@@ -49,7 +46,6 @@ public class SystemItemControllerTest {
         );
     }
 
-    @Order(2)
     @Test
     public void sameImports_nothingChanges() {
         restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
@@ -72,7 +68,6 @@ public class SystemItemControllerTest {
 
     }
 
-    @Order(3)
     @Test
     public void shouldReturn404_ifNotFound() {
         var ex = assertThrows(HttpClientErrorException.NotFound.class, () -> {
@@ -84,7 +79,6 @@ public class SystemItemControllerTest {
         assertTrue(msg.contains("Item not found"));
     }
 
-    @Order(4)
     @Test
     public void shouldDeleteExistingItem() {
         restTemplate.delete(baseUrl.concat("delete/5?date=2022-05-28T21:12:01.516Z"));
@@ -95,7 +89,6 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Item not found"));
     }
 
-    @Order(5)
     @Test
     public void shouldReturnValidationError_whenDeleteWithIncorrectDate() {
         var ex = assertThrows(HttpClientErrorException.class, () -> {
@@ -105,7 +98,6 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Validation Failed"));
     }
 
-    @Order(6)
     @Test
     public void shouldReturnValidationError_whenSavingWithIncorrectDateField() {
         var newImports = createNewImportsIncorrectDate();
@@ -115,7 +107,6 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Validation Failed"));
     }
 
-    @Order(7)
     @Test
     public void shouldReturnValidationError_whenSavingWithFolderHavingUrl() {
         var newImports = createNewImportsFolderUrl();
@@ -125,13 +116,103 @@ public class SystemItemControllerTest {
         assertTrue(ex.getMessage().contains("Validation Failed"));
     }
 
-    @Order(8)
     @Test
     public void shouldReturnListOfUpdates() {
         UpdateItemsWrapper updates =
                 restTemplate.getForObject(baseUrl.concat("updates?").concat("date=2022-05-28T23:12:01.516Z"), UpdateItemsWrapper.class);
         assertFalse(updates.getItems().isEmpty());
-        assertEquals(4, updates.getItems().size());
+        assertEquals(5, updates.getItems().size());
+    }
+
+    @Test
+    public void shouldThrowNotFoundErrorIfInvalidIdForHstoryRequest() {
+        var ex = assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.getForObject(baseUrl.concat("node/10/history"), UpdateItemsWrapper.class);
+        });
+        String message = ex.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("Item not found"));
+    }
+
+    @Test
+    public void shouldThrowValidationError_ifDatesAreIncorrectForHistoryRequest() {
+        var ex = assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.getForObject(baseUrl.concat("node/10/history"
+                    .concat("?dateStart=022-05-28T21:12:01.516Z")
+                    .concat("&endDate=022-06-28T21:12:01.516Z")), UpdateItemsWrapper.class);
+        });
+        String message = ex.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("Validation Failed"));
+    }
+
+    @Test
+    public void shouldReturnListOfOneElementWhenNoUpdatesForHistoryRequestWithNoDate() {
+        UpdateItemsWrapper history = restTemplate.getForObject(baseUrl.concat("node/1/history"), UpdateItemsWrapper.class);
+        assertNotNull(history);
+        List<UpdateItemDto> items = history.getItems();
+        assertEquals(1, items.size());
+        assertEquals("1", items.get(0).getId());
+        assertEquals(3072, items.get(0).getSize());
+    }
+
+    @Test
+    public void shouldReturnListOfOneElementWhenNoUpdatesForHistoryRequestWithDate() {
+        UpdateItemsWrapper history = restTemplate.getForObject(baseUrl
+                .concat("node/1/history")
+                .concat("?dateStart=2022-05-27T21:12:01.516Z")
+                .concat("&dateEnd=2022-05-29T21:12:01.516Z"), UpdateItemsWrapper.class);
+
+        assertNotNull(history);
+        List<UpdateItemDto> items = history.getItems();
+        assertEquals(1, items.size());
+        assertEquals("1", items.get(0).getId());
+        assertEquals(3072, items.get(0).getSize());
+    }
+
+    @Test
+    public void whenUpdatedShouldReturnListOfTwoElementsForHistoryRequestWithNoDate() {
+        restTemplate.postForObject(baseUrl.concat("imports/"), createNewFileInRootFolder(), String.class);
+
+        UpdateItemsWrapper history = restTemplate.getForObject(baseUrl.concat("node/1/history"), UpdateItemsWrapper.class);
+        assertNotNull(history);
+        List<UpdateItemDto> items = history.getItems();
+        assertEquals(2, items.size());
+        assertEquals("1", items.get(0).getId());
+        assertEquals(3072, items.get(0).getSize());
+        assertEquals("2022-05-28T21:12:01.516Z", items.get(0).getDate());
+        assertEquals("1", items.get(1).getId());
+        assertEquals(4072, items.get(1).getSize());
+        assertEquals("2022-05-29T21:12:01.516Z", items.get(1).getDate());
+    }
+
+    @Test
+    public void whenUpdatedShouldReturnListOfTwoElementsForHistoryRequestWithDate() {
+        restTemplate.postForObject(baseUrl.concat("imports/"), createNewFileInRootFolder(), String.class);
+
+        UpdateItemsWrapper history = restTemplate.getForObject(baseUrl
+                .concat("node/1/history")
+                .concat("?dateStart=2022-05-27T21:12:01.516Z")
+                .concat("&dateEnd=2022-05-29T21:13:01.516Z"), UpdateItemsWrapper.class);
+
+        assertNotNull(history);
+        List<UpdateItemDto> items = history.getItems();
+        assertEquals(2, items.size());
+        assertEquals("1", items.get(0).getId());
+        assertEquals(3072, items.get(0).getSize());
+        assertEquals("2022-05-28T21:12:01.516Z", items.get(0).getDate());
+        assertEquals("1", items.get(1).getId());
+        assertEquals(4072, items.get(1).getSize());
+        assertEquals("2022-05-29T21:12:01.516Z", items.get(1).getDate());
+    }
+
+    public ImportsDto createNewFileInRootFolder() {
+        var importsDto = new ImportsDto();
+        importsDto.setUpdateDate("2022-05-29T21:12:01.516Z");
+        var file = new SystemItemDto();
+        initItem(file, "6", "newFileUrl", "1", ItemType.FILE, 1000);
+        importsDto.setItems(List.of(file));
+        return importsDto;
     }
 
     private ImportsDto createNewImportsIncorrectDate() {

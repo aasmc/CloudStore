@@ -12,6 +12,7 @@ import ru.aasmc.cloudstore.data.model.dto.ImportsDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemDto;
 import ru.aasmc.cloudstore.data.model.dto.SystemItemExtendedDto;
 import ru.aasmc.cloudstore.data.model.dto.UpdateItemDto;
+import ru.aasmc.cloudstore.util.DateProcessor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -292,6 +293,118 @@ public class SystemItemServiceTest {
 
         List<UpdateItemDto> updates = service.findUpdates(before, after);
         assertTrue(updates.isEmpty());
+    }
+
+    @Test
+    public void whenNoUpdatesAndNoDate_returnsListOfOneItem() {
+        List<UpdateItemDto> historyByItemId = service.findHistoryByItemId(ROOT_ID);
+        assertEquals(1, historyByItemId.size());
+        assertEquals(ROOT_ID, historyByItemId.get(0).getId());
+        assertEquals(TOTAL_SIZE, historyByItemId.get(0).getSize());
+    }
+
+    @Test
+    public void whenNoItemIdDBAndNoDate_returnsEmptyList() {
+        List<UpdateItemDto> empty = service.findHistoryByItemId("NO ID");
+        assertTrue(empty.isEmpty());
+    }
+
+    @Test
+    public void whenItemDeletedAndNoDate_emptyListIsReturned() {
+        List<UpdateItemDto> root = service.findHistoryByItemId(ROOT_ID);
+        assertEquals(1, root.size());
+        assertEquals(ROOT_ID, root.get(0).getId());
+
+        service.deleteById(ROOT_ID);
+
+        List<UpdateItemDto> empty = service.findHistoryByItemId(ROOT_ID);
+        assertTrue(empty.isEmpty());
+    }
+
+    @Test
+    public void whenUpdatedAndNoDate_returnsListOfTwoItems() {
+        var newImports = createNewImports(UPDATED_MODIFIED_AT, true);
+        service.saveAll(newImports);
+
+        List<UpdateItemDto> history = service.findHistoryByItemId(ROOT_ID);
+        assertEquals(2, history.size());
+        assertEquals(ROOT_ID, history.get(0).getId());
+        assertEquals(MODIFIED_AT, history.get(0).getDate());
+        assertEquals(ROOT_ID, history.get(1).getId());
+        assertEquals(UPDATED_MODIFIED_AT, history.get(1).getDate());
+    }
+
+    @Test
+    public void whenNoUpdateAndDateWithinBounds_returnsListOfOneElement() {
+        LocalDateTime from = DateProcessor.toDate(MODIFIED_AT).minusDays(3);
+        LocalDateTime to = DateProcessor.toDate(MODIFIED_AT).plusDays(3);
+        List<UpdateItemDto> history = service.findHistoryByItemIdAndDate(ROOT_ID, from, to);
+        assertFalse(history.isEmpty());
+        assertEquals(1, history.size());
+        assertEquals(ROOT_ID, history.get(0).getId());
+    }
+
+    @Test
+    public void whenNoUpdateAndDateOutsideOfBounds_returnsEmptyList() {
+        LocalDateTime from = LocalDateTime.of(
+                LocalDate.of(2022, Month.MAY, 30),
+                LocalTime.of(12, 12, 12)
+        );
+
+        LocalDateTime to = LocalDateTime.of(
+                LocalDate.of(2022, Month.MAY, 31),
+                LocalTime.of(12, 12, 12)
+        );
+        List<UpdateItemDto> empty = service.findHistoryByItemIdAndDate(ROOT_ID, from, to);
+        assertTrue(empty.isEmpty());
+    }
+
+    @Test
+    public void whenUpdatedAndDateWithinBounds_returnsListOfTwoItems() {
+        var newImports = createNewImports(UPDATED_MODIFIED_AT, true);
+        service.saveAll(newImports);
+
+        LocalDateTime from = DateProcessor.toDate(MODIFIED_AT).minusDays(3);
+        LocalDateTime to = DateProcessor.toDate(MODIFIED_AT).plusDays(3);
+
+        List<UpdateItemDto> history = service.findHistoryByItemIdAndDate(ROOT_ID, from, to);
+        assertEquals(2, history.size());
+        assertEquals(ROOT_ID, history.get(0).getId());
+        assertEquals(MODIFIED_AT, history.get(0).getDate());
+        assertEquals(ROOT_ID, history.get(1).getId());
+        assertEquals(UPDATED_MODIFIED_AT, history.get(1).getDate());
+    }
+
+    @Test
+    public void whenUpdatedAndDateWithinBounds_returnsListOfTwoItemsSecondItemWithChangedSize() {
+        var newImports = createNewFileInRootFolder(UPDATED_MODIFIED_AT);
+        service.saveAll(newImports);
+
+        LocalDateTime from = DateProcessor.toDate(MODIFIED_AT).minusDays(3);
+        LocalDateTime to = DateProcessor.toDate(MODIFIED_AT).plusDays(3);
+
+        List<UpdateItemDto> history = service.findHistoryByItemIdAndDate(ROOT_ID, from, to);
+        assertEquals(2, history.size());
+        assertEquals(ROOT_ID, history.get(0).getId());
+        assertEquals(MODIFIED_AT, history.get(0).getDate());
+        assertEquals(TOTAL_SIZE, history.get(0).getSize());
+        assertEquals(ROOT_ID, history.get(1).getId());
+        assertEquals(UPDATED_MODIFIED_AT, history.get(1).getDate());
+        assertEquals(TOTAL_SIZE + THIRD_FILE_SIZE, history.get(1).getSize());
+    }
+
+    private ImportsDto createNewFileInRootFolder(String modifiedAt) {
+        var newImports = new ImportsDto();
+        newImports.setUpdateDate(modifiedAt);
+
+        var file = new SystemItemDto();
+        file.setParentId(ROOT_ID);
+        file.setSize(THIRD_FILE_SIZE);
+        file.setType(ItemType.FILE);
+        file.setUrl("anotherChildUrl");
+        file.setId(NEW_FILE_ID);
+        newImports.setItems(List.of(file));
+        return newImports;
     }
 
     private ImportsDto createNewImports(String modifiedAt, boolean createInnerFolder) {

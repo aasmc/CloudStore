@@ -18,4 +18,10 @@ public interface SystemItemService {
     void saveAll(ImportsDto imports);
 
     List<UpdateItemDto> findUpdates(LocalDateTime before, LocalDateTime after);
+
+    List<UpdateItemDto> findHistoryByItemId(String itemId);
+
+    List<UpdateItemDto> findHistoryByItemIdAndDate(String itemId,
+                                                   LocalDateTime from,
+                                                   LocalDateTime to);
 }

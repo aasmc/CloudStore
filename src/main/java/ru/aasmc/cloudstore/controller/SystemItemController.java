@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.lang.Nullable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.aasmc.cloudstore.data.model.ItemType;
@@ -108,4 +109,29 @@ public class SystemItemController {
         return result;
     }
 
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping(value = "node/{id}/history", produces = MediaType.APPLICATION_JSON_VALUE)
+    public UpdateItemsWrapper getHistory(@PathVariable String id,
+                                         @Nullable @RequestParam String dateStart,
+                                         @Nullable @RequestParam String dateEnd) {
+        if (dateStart != null && dateEnd != null) {
+            if (!DateProcessor.checkDate(dateStart) || !DateProcessor.checkDate(dateEnd)) {
+                throw new ValidationException(HttpStatus.BAD_REQUEST, "Validation Failed");
+            }
+        }
+        List<UpdateItemDto> history;
+        if (dateStart == null && dateEnd == null) {
+            history = service.findHistoryByItemId(id);
+        } else {
+            history = service.findHistoryByItemIdAndDate(id,
+                    DateProcessor.toDate(dateStart),
+                    DateProcessor.toDate(dateEnd));
+        }
+        if (history.isEmpty()) {
+            throw new ItemNotFoundException(HttpStatus.NOT_FOUND, "Item not found");
+        }
+        var result = new UpdateItemsWrapper();
+        result.setItems(history);
+        return result;
+    }
 }
