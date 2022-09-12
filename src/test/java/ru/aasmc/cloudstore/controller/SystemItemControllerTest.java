@@ -34,6 +34,11 @@ public class SystemItemControllerTest {
         restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
     }
 
+    @AfterEach
+    void tearDown() {
+        restTemplate.delete(baseUrl.concat("delete/1?date=2022-05-28T21:12:01.516Z"));
+    }
+
 
     @Test
     public void shouldReturnRootEntity() {
@@ -125,7 +130,7 @@ public class SystemItemControllerTest {
     }
 
     @Test
-    public void shouldThrowNotFoundErrorIfInvalidIdForHstoryRequest() {
+    public void shouldThrowNotFoundErrorIfInvalidIdForHistoryRequest() {
         var ex = assertThrows(HttpClientErrorException.class, () -> {
             restTemplate.getForObject(baseUrl.concat("node/10/history"), UpdateItemsWrapper.class);
         });
@@ -204,6 +209,21 @@ public class SystemItemControllerTest {
         assertEquals("1", items.get(1).getId());
         assertEquals(4072, items.get(1).getSize());
         assertEquals("2022-05-29T21:12:01.516Z", items.get(1).getDate());
+    }
+
+    @Test
+    public void shouldThrowNotFoundExceptionWhenSearchForHistoryAfterDelete() {
+        restTemplate.delete(baseUrl.concat("delete/1?date=2022-05-28T21:12:01.516Z"));
+
+        var ex = assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.getForObject(baseUrl.concat("node/1/history"), UpdateItemsWrapper.class);
+        });
+        String message = ex.getMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("Item not found"));
+
+        // restore to allow for teardown to complete
+        restTemplate.postForObject(baseUrl.concat("imports/"), createInitialImports(), String.class);
     }
 
     public ImportsDto createNewFileInRootFolder() {

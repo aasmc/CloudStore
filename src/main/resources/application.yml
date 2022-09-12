@@ -58,3 +58,4 @@ logging:
     root: INFO
     org.springframework: DEBUG
     ru.aasmc.cloudstore: DEBUG
+

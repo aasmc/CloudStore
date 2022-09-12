@@ -176,7 +176,7 @@ public class SystemItemServiceImpl implements SystemItemService {
             var result = new ArrayList<UpdateItemDto>();
             for (var item : history) {
                 var dto = new UpdateItemDto();
-                dto.setId(item.getItemId());
+                dto.setId(item.getId().getModifiedItemId());
                 dto.setType(item.getType());
                 dto.setUrl(item.getUrl());
                 dto.setSize(item.getSize());
@@ -208,7 +208,10 @@ public class SystemItemServiceImpl implements SystemItemService {
 
     private void saveHistoryItem(SystemItem systemItem, String updateDate) {
         var historyItem = new HistoryItem();
-        historyItem.setItemId(systemItem.getId());
+        var id = new ModItemId();
+        id.setModifiedItemId(systemItem.getId());
+        id.setModifiedAt(DateProcessor.toDate(updateDate));
+        historyItem.setId(id);
         historyItem.setDate(updateDate);
         historyItem.setType(systemItem.getType());
         historyItem.setUrl(systemItem.getUrl());
@@ -218,7 +221,6 @@ public class SystemItemServiceImpl implements SystemItemService {
         } else {
             historyItem.setParentId(null);
         }
-        historyItem.setModifiedAt(DateProcessor.toDate(updateDate));
         Integer size = systemItem.getSize();
         if (size == 0) { // this is a folder with no children
             historyItem.setSize(null);
